@@ -1,7 +1,8 @@
 cmake_minimum_required (VERSION 2.8)
-project (AlloApps)
+project (PointCloud)
 
 add_subdirectory(AlloSystem)
+add_subdirectory(cuttlebone)
 
 if((NOT ALLOPROJECT_BUILD_DIR) AND (NOT ALLOPROJECT_BUILD_APP_FILE))
   message(FATAL_ERROR "AlloProject requires passing a file or a directory to cmake. See run.sh script")
@@ -22,6 +23,8 @@ else()
   get_filename_component(SOURCE_DIR ${ALLOPROJECT_BUILD_APP_FILE} PATH)
 endif(ALLOPROJECT_BUILD_DIR)
 
+file(GLOB APP_RES_FILES RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "${SOURCE_DIR}/*")
+
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_SOURCE_DIR}/build/bin)
 
 add_executable(${APP_NAME} EXCLUDE_FROM_ALL ${ALLOPROJECT_APP_SRC})
@@ -33,6 +36,7 @@ endif(APPLE)
 
 if(EXISTS "${SOURCE_DIR}/flags.cmake")
     include("${SOURCE_DIR}/flags.cmake")
+    list(REMOVE_ITEM APP_RES_FILES "${SOURCE_DIR}/flags.cmake")
 endif()
 
 if(EXISTS "${SOURCE_DIR}/flags.txt")
@@ -40,11 +44,27 @@ if(EXISTS "${SOURCE_DIR}/flags.txt")
   STRING(REGEX REPLACE "[\r\n]" " " EXTRA_COMPILER_FLAGS "${EXTRA_COMPILER_FLAGS}")
   set_target_properties(${APP_NAME} PROPERTIES
     COMPILE_FLAGS "${EXTRA_COMPILER_FLAGS}")
+
+    list(REMOVE_ITEM APP_RES_FILES "${SOURCE_DIR}/flags.txt")
   message("WARNING: Using additional flags from ${SOURCE_DIR}/flags.txt: ${EXTRA_COMPILER_FLAGS}")
 endif()
 
 message("Target: ${APP_NAME}")
 message("From sources: ${ALLOPROJECT_APP_SRC}")
+
+foreach(SRC_FILE ${ALLOPROJECT_APP_SRC})
+    list(REMOVE_ITEM APP_RES_FILES ${SRC_FILE})
+endforeach(SRC_FILE ${ALLOPROJECT_APP_SRC})
+
+
+foreach(RES_FILE ${APP_RES_FILES})
+      set(SRC "${CMAKE_CURRENT_SOURCE_DIR}/${RES_FILE}")
+      get_filename_component(DST ${RES_FILE} NAME)
+      if(NOT (IS_DIRECTORY ${SRC}))
+        configure_file(${SRC} "${CMAKE_SOURCE_DIR}/build/${DST}" COPY_ONLY)
+        message(STATUS "Copying: " ${SRC})
+      endif(NOT (IS_DIRECTORY ${SRC}))
+endforeach(RES_FILE ${APP_RES_FILES})
 
 # Dependencies (check if targets exist and set variables)
 get_target_property(ALLOCORE_LIBRARY allocore LOCATION)

@@ -35,3 +35,9 @@ if [ -d "vsr" ]; then
     ./distclean  
     cd .. 
 fi
+
+if [ -d "cuttlebone" ]; then
+    cd cuttlebone
+
+    cd ..
+fi
